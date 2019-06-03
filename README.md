@@ -8,7 +8,7 @@ It does so by matching the fuzzy search results of [http://loc.geopunt.be/v4/sug
 GET /search?query="Koningin Maria Hendrikaplein 70"
 ```
 
-Should retrurn
+Should return:
 
 ```
 {
