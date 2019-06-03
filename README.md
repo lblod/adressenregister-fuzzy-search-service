@@ -1,7 +1,8 @@
 # adressenregister-fuzzy-search-service
-A microservice which eases fuzzy search on addressenregister.
 
-It does so by matching the fuzzy search results of [http://loc.geopunt.be/v4/suggestion](http://loc.geopunt.be/v4/suggestion) to objects in [https://basisregisters.vlaanderen.be/api/v1/adresmatch](https://basisregisters.vlaanderen.be/api/v1/adresmatch)
+A microservice which eases fuzzy search on adressenregister.
+
+It does so by matching the fuzzy search results of [http://loc.geopunt.be/v4/suggestion](http://loc.geopunt.be/v4/suggestion) to objects in [https://basisregisters.vlaanderen.be/api/v1/adressen](https://basisregisters.vlaanderen.be/api/v1/adressen)
 
 ## API
 ```
