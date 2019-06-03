@@ -7,6 +7,7 @@ const LOC_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/location`;
 const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
 
 app.use(errorHandler);
+
 app.get('/', ( req, res ) => res.send({ 'msg': `Welcome to adressenregister-fuzzy-search-service.` } ) );
 
 app.get('/search', async (req, res) => {
@@ -28,6 +29,26 @@ app.get('/search', async (req, res) => {
   res.send({'adressen': uniqueAddresses, 'totaalAantal': uniqueAddresses.length });
 });
 
+app.get('/detail', async (req, res) => {
+  const uri = req.query.uri;
+  if(!uri){
+    res.status(400).send({'msg': `Please, include ?uri=http://foo`});
+    return;
+  }
+
+  let result = await getDetail(uri);
+  if(!result){
+    res.status(404).send({'msg': `Details not found for ${uri}`});
+    return;
+  }
+  res.send(result);
+});
+
+async function getDetail(uri){
+  const results = tryJsonParse(await getUrl(`${uri}`));
+  if(!results) return null;
+  return results;
+};
 
 async function getFuzzySuggestions(query){
   const results = tryJsonParse(await getUrl(`${FUZZY_GEOPUNT_ENDPOINT}?q=${query}`));
