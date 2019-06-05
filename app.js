@@ -30,15 +30,15 @@ app.get('/search', async (req, res) => {
 });
 
 app.get('/detail', async (req, res) => {
-  const uri = req.query.uri;
-  if(!uri){
-    res.status(400).send({'msg': `Please, include ?uri=http://foo`});
+  const url = req.query.url;
+  if(!url){
+    res.status(400).send({'msg': `Please, include ?url=https://foo/detail`});
     return;
   }
 
-  let result = await getDetail(uri);
+  let result = await getDetail(url);
   if(!result){
-    res.status(404).send({'msg': `Details not found for ${uri}`});
+    res.status(404).send({'msg': `Details not found for ${url}`});
     return;
   }
   res.send(result);
