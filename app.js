@@ -22,11 +22,21 @@ app.get('/search', async (req, res) => {
 
   const locationsFromFuzzyResults = await Promise.all(fuzzyResults.map((r) => getLocationFromFuzzyResult(r)));
   const uniqueLocations = mergeLocations(locationsFromFuzzyResults);
-  const addresses = await Promise.all(uniqueLocations.map( l => getBasisregisterAdresMatch(l)));
-  const uniqueAddresses = await mergeAddresses(addresses);
+  //mimick api of basisregister
+  res.send({'adressen': uniqueLocations, 'totaalAantal': uniqueLocations.length });
+});
+
+app.get('/match', async (req, res) => {
+  const municipality = req.query.municipality;
+  const zipcode = req.query.zipcode;
+  const thoroughfarename = req.query.thoroughfarename;
+  const housenumber = req.query.housenumber;
+
+  // We take the first match arbitrary here, can be improved
+  const address = (await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber))[0];
 
   //mimick api of basisregister
-  res.send({'adressen': uniqueAddresses, 'totaalAantal': uniqueAddresses.length });
+  res.send(address);
 });
 
 app.get('/detail', async (req, res) => {
@@ -74,20 +84,20 @@ function mergeLocations(allLocations){
   return uniqueLocations;
 };
 
-async function getBasisregisterAdresMatch(geoPuntLocation){
+async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber){
   let queryParams = '';
 
-  if(geoPuntLocation.Municipality)
-    queryParams += `GemeenteNaam=${geoPuntLocation.Municipality}&`;
+  if(municipality)
+    queryParams += `GemeenteNaam=${municipality}&`;
 
-  if(geoPuntLocation.Zipcode)
-    queryParams += `Postcode=${geoPuntLocation.Zipcode}&`;
+  if(zipcode)
+    queryParams += `Postcode=${zipcode}&`;
 
-  if(geoPuntLocation.Thoroughfarename)
-    queryParams += `Straatnaam=${geoPuntLocation.Thoroughfarename}&`;
+  if(thoroughfarename)
+    queryParams += `Straatnaam=${thoroughfarename}&`;
 
-  if(geoPuntLocation.Housenumber)
-    queryParams += `Huisnummer=${geoPuntLocation.Housenumber}&`;
+  if(housenumber)
+    queryParams += `Huisnummer=${housenumber}&`;
 
   if(!queryParams) return [];
 
@@ -99,20 +109,6 @@ async function getBasisregisterAdresMatch(geoPuntLocation){
 
   return results['adressen'];
 }
-
-function mergeAddresses(allAddresses){
-
-  let flatAddresses = [];
-  allAddresses.forEach(addresses => flatAddresses = [ ...flatAddresses, ...addresses]);
-  let uniqueAddresses = [];
-  flatAddresses.forEach(address => {
-    if(!uniqueAddresses.find(a => a.identificator.id == address.identificator.id)){
-      uniqueAddresses.push(address);
-    }
-  });
-  return uniqueAddresses;
-
-};
 
 /**
  * Get call url
