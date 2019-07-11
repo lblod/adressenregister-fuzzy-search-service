@@ -22,20 +22,15 @@ app.get('/search', async (req, res) => {
   res.send({'adressen': locations, 'totaalAantal': locations.length });
 });
 
-
 app.get('/match', async (req, res) => {
   const municipality = req.query.municipality;
   const zipcode = req.query.zipcode;
   const thoroughfarename = req.query.thoroughfarename;
   const housenumber = req.query.housenumber;
 
-  // We take the first match arbitrary here, can be improved
-  const address = (await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber))[0];
-
-  //mimick api of basisregister
-  res.send(address);
+  const addresses = (await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber));
+  res.send(addresses);
 });
-
 
 app.get('/detail', async (req, res) => {
   const uri = req.query.uri;
