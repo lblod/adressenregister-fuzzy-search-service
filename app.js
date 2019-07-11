@@ -1,8 +1,6 @@
 import { app, errorHandler} from 'mu';
 import request from 'request';
 
-
-const FUZZY_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/suggestion`;
 const LOC_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/location`;
 const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
 
@@ -18,13 +16,12 @@ app.get('/search', async (req, res) => {
     return;
   }
 
-  const fuzzyResults = await getFuzzySuggestions(query);
+  const locations = await getLocations(query);
 
-  const locationsFromFuzzyResults = await Promise.all(fuzzyResults.map((r) => getLocationFromFuzzyResult(r)));
-  const uniqueLocations = mergeLocations(locationsFromFuzzyResults);
   //mimick api of basisregister
-  res.send({'adressen': uniqueLocations, 'totaalAantal': uniqueLocations.length });
+  res.send({'adressen': locations, 'totaalAantal': locations.length });
 });
+
 
 app.get('/match', async (req, res) => {
   const municipality = req.query.municipality;
@@ -38,6 +35,7 @@ app.get('/match', async (req, res) => {
   //mimick api of basisregister
   res.send(address);
 });
+
 
 app.get('/detail', async (req, res) => {
   const uri = req.query.uri;
@@ -60,28 +58,10 @@ async function getDetail(uri){
   return results;
 };
 
-async function getFuzzySuggestions(query){
-  const results = tryJsonParse(await getUrl(`${FUZZY_GEOPUNT_ENDPOINT}?q=${query}`));
-  if(!results) return [];
-  return results['SuggestionResult'];
-};
-
-async function getLocationFromFuzzyResult(fuzzyRes){
-  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${fuzzyRes}&c=100`));
+async function getLocations(fuzzyRes){
+  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${fuzzyRes}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
   if(!results) return [];
   return results['LocationResult'];
-};
-
-function mergeLocations(allLocations){
-  let flatLocations = [];
-  allLocations.forEach(locations => flatLocations = [ ...flatLocations, ...locations]);
-  let uniqueLocations = [];
-  flatLocations.forEach(location => {
-    if(!uniqueLocations.find(l => location.ID == l.ID && location.LocationType == l.LocationType)){
-      uniqueLocations.push(location);
-    }
-  });
-  return uniqueLocations;
 };
 
 async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber){
