@@ -1,7 +1,7 @@
 import { app, errorHandler} from 'mu';
 import request from 'request';
 
-const LOC_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/location`;
+const LOC_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/Location`;
 const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
 
 app.use(errorHandler);
@@ -47,6 +47,15 @@ app.get('/detail', async (req, res) => {
   res.send(result);
 });
 
+app.get('/suggest-from-latlon', async (req, res) => {
+  const lat = req.query.lat;
+  const lon = req.query.lon;
+  const count = req.query.count;
+
+  const addresses = (await getAddressesFromLatLon(lat, lon, count));
+  res.send(addresses);
+});
+
 async function getDetail(uri){
   const results = tryJsonParse(await getUrl(`${uri}`));
   if(!results) return null;
@@ -84,6 +93,12 @@ async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarenam
 
   return results['adressen'];
 }
+
+async function getAddressesFromLatLon(lat, lon, count){
+  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?latlon=${lat},${lon}&c=${count}`));
+  if(!results) return [];
+  return results['LocationResult'];
+};
 
 /**
  * Get call url
