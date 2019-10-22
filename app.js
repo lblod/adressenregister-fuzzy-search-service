@@ -110,7 +110,7 @@ async function getUrl (url, headers = {}) {
     request(url, (error, response, body) => {
       if(error){
         console.log(`Error occured by fetching url: ${url}`);
-        console.log(`Status code: ${response.statysCode}`);
+        console.log(`Status code: ${response.statusCode}`);
         console.log(`Error: ${error}`);
         reject(error);
       }
