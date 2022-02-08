@@ -68,22 +68,22 @@ async function getLocations(fuzzyRes){
   return results['LocationResult'];
 };
 
-// Note: BASISREGISTER_ADRESMATCH doesn't match if a param has special characters, such as accents.
-// To be able to process all the addresses, we need to make the values as simple as possible
+// Note: BASISREGISTER_ADRESMATCH doesn't match if a param has accents in it.
+// To be able to process all the addresses, we need to make the letters as simple as possible
 async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber){
   let queryParams = '';
 
   if(municipality)
-    queryParams += `GemeenteNaam=${replaceSpecialCharacters(municipality)}&`;
+    queryParams += `GemeenteNaam=${replaceAccents(municipality)}&`;
 
   if(zipcode)
-    queryParams += `Postcode=${replaceSpecialCharacters(zipcode)}&`;
+    queryParams += `Postcode=${replaceAccents(zipcode)}&`;
 
   if(thoroughfarename)
-    queryParams += `Straatnaam=${replaceSpecialCharacters(thoroughfarename)}&`;
+    queryParams += `Straatnaam=${replaceAccents(thoroughfarename)}&`;
 
   if(housenumber)
-    queryParams += `Huisnummer=${replaceSpecialCharacters(housenumber)}&`;
+    queryParams += `Huisnummer=${replaceAccents(housenumber)}&`;
 
   if(!queryParams) return [];
 
@@ -132,6 +132,6 @@ function tryJsonParse(str){
 }
 
 // From https://ricardometring.com/javascript-replace-special-characters
-function replaceSpecialCharacters(string) {
-  return string.normalize('NFD').replace(/([\u0300-\u036f]|[^0-9a-zA-Z\s])/g, '');
+function replaceAccents(string) {
+  return string.normalize('NFD').replace(/([\u0300-\u036f])/g, '');
 }
