@@ -68,20 +68,22 @@ async function getLocations(fuzzyRes){
   return results['LocationResult'];
 };
 
+// Note: BASISREGISTER_ADRESMATCH doesn't match if a param has accents in it.
+// To be able to process all the addresses, we need to make the letters as simple as possible
 async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber){
   let queryParams = '';
 
   if(municipality)
-    queryParams += `GemeenteNaam=${municipality}&`;
+    queryParams += `GemeenteNaam=${replaceAccents(municipality)}&`;
 
   if(zipcode)
-    queryParams += `Postcode=${zipcode}&`;
+    queryParams += `Postcode=${replaceAccents(zipcode)}&`;
 
   if(thoroughfarename)
-    queryParams += `Straatnaam=${thoroughfarename}&`;
+    queryParams += `Straatnaam=${replaceAccents(thoroughfarename)}&`;
 
   if(housenumber)
-    queryParams += `Huisnummer=${housenumber}&`;
+    queryParams += `Huisnummer=${replaceAccents(housenumber)}&`;
 
   if(!queryParams) return [];
 
@@ -127,4 +129,9 @@ function tryJsonParse(str){
   catch (e) {
     return null;
   }
+}
+
+// From https://ricardometring.com/javascript-replace-special-characters
+function replaceAccents(string) {
+  return string.normalize('NFD').replace(/([\u0300-\u036f])/g, '');
 }
