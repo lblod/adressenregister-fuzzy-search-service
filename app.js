@@ -105,7 +105,8 @@ async function getAddressesFromLatLon(lat, lon, count){
 /**
  * Get call url
  */
-async function getUrl (url, headers = {}) {
+async function getUrl (stringUrl, headers = {}) {
+  const url = (new URL(stringUrl)).href;
 
   return new Promise((resolve, reject) => {
     let r = request({url, headers});
