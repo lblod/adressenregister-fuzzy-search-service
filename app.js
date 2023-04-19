@@ -1,25 +1,25 @@
-import { app, errorHandler} from 'mu';
+import { app, errorHandler } from 'mu';
 import request from 'request';
 
-const LOC_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/Location`;
+const LOC_GEOPUNT_ENDPOINT = `https://geo.api.vlaanderen.be/geolocation/v4/Location`;
 const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
 
 app.use(errorHandler);
 
-app.get('/', ( req, res ) => res.send({ 'msg': `Welcome to adressenregister-fuzzy-search-service.` } ) );
+app.get('/', (req, res) => res.send({ 'msg': `Welcome to adressenregister-fuzzy-search-service.` }));
 
 app.get('/search', async (req, res) => {
   const query = req.query.query;
 
-  if(!query){
-    res.status(400).send({'msg': `Please, include ?query=your address`});
+  if (!query) {
+    res.status(400).send({ 'msg': `Please, include ?query=your address` });
     return;
   }
 
-  const locations = await getLocations(query);
+  const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
 
   //mimick api of basisregister
-  res.send({'adressen': locations, 'totaalAantal': locations.length });
+  res.send({ 'adressen': locations, 'totaalAantal': locations.length });
 });
 
 app.get('/match', async (req, res) => {
@@ -34,14 +34,14 @@ app.get('/match', async (req, res) => {
 
 app.get('/detail', async (req, res) => {
   const uri = req.query.uri;
-  if(!uri){
-    res.status(400).send({'msg': `Please, include ?uri=http://foo`});
+  if (!uri) {
+    res.status(400).send({ 'msg': `Please, include ?uri=http://foo` });
     return;
   }
 
   let result = await getDetail(uri);
-  if(!result){
-    res.status(404).send({'msg': `Details not found for ${uri}`});
+  if (!result) {
+    res.status(404).send({ 'msg': `Details not found for ${uri}` });
     return;
   }
   res.send(result);
@@ -56,65 +56,65 @@ app.get('/suggest-from-latlon', async (req, res) => {
   res.send(addresses);
 });
 
-async function getDetail(uri){
+async function getDetail(uri) {
   const results = tryJsonParse(await getUrl(`${uri}`));
-  if(!results) return null;
+  if (!results) return null;
   return results;
 };
 
-async function getLocations(fuzzyRes){
-  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${fuzzyRes}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
-  if(!results) return [];
+async function getLocations(fuzzyRes) {
+  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
+  if (!results) return [];
   return results['LocationResult'];
 };
 
 // Note: BASISREGISTER_ADRESMATCH doesn't match if a param has accents in it.
 // To be able to process all the addresses, we need to make the letters as simple as possible
-async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber){
+async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber) {
   let queryParams = '';
 
-  if(municipality)
+  if (municipality)
     queryParams += `GemeenteNaam=${replaceAccents(municipality)}&`;
 
-  if(zipcode)
+  if (zipcode)
     queryParams += `Postcode=${replaceAccents(zipcode)}&`;
 
-  if(thoroughfarename)
+  if (thoroughfarename)
     queryParams += `Straatnaam=${replaceAccents(thoroughfarename)}&`;
 
-  if(housenumber)
+  if (housenumber)
     queryParams += `Huisnummer=${replaceAccents(housenumber)}&`;
 
-  if(!queryParams) return [];
+  if (!queryParams) return [];
 
   const url = `${BASISREGISTER_ADRESMATCH}?${queryParams}`;
 
   const results = tryJsonParse(await getUrl(url));
 
-  if(!results) return [];
+  if (!results) return [];
 
   return results['adressen'];
 }
 
-async function getAddressesFromLatLon(lat, lon, count){
+async function getAddressesFromLatLon(lat, lon, count) {
   const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?latlon=${lat},${lon}&c=${count}`));
-  if(!results) return [];
+  if (!results) return [];
   return results['LocationResult'];
 };
 
 /**
  * Get call url
  */
-async function getUrl (stringUrl, headers = {}) {
+async function getUrl(stringUrl, headers = {}) {
   const url = (new URL(stringUrl)).href;
 
   return new Promise((resolve, reject) => {
-    let r = request({url, headers});
+    let r = request({ url, headers });
     request(url, (error, response, body) => {
-      if(error){
-        console.log(`Error occured by fetching url: ${url}`);
-        console.log(`Status code: ${response.statusCode}`);
-        console.log(`Error: ${error}`);
+      if (error) {
+        console.log(`Error occured by fetching url: ${url} `);
+        console.log(`Status code: ${response.statusCode} `);
+        console.log(`Error: ${error} `);
         reject(error);
       }
       resolve(body);
@@ -123,7 +123,7 @@ async function getUrl (stringUrl, headers = {}) {
 
 }
 
-function tryJsonParse(str){
+function tryJsonParse(str) {
   try {
     return JSON.parse(str);
   }
