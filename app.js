@@ -1,7 +1,7 @@
 import { app, errorHandler} from 'mu';
 import request from 'request';
 
-const LOC_GEOPUNT_ENDPOINT = `https://loc.geopunt.be/v4/Location`;
+const LOC_GEOPUNT_ENDPOINT = `https://geo.api.vlaanderen.be/geolocation/v4/Location`;
 const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
 
 app.use(errorHandler);
