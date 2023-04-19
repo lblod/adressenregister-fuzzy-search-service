@@ -16,7 +16,7 @@ app.get('/search', async (req, res) => {
     return;
   }
 
-  const locations = await getLocations(query);
+  const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
 
   //mimick api of basisregister
   res.send({'adressen': locations, 'totaalAantal': locations.length });
@@ -62,9 +62,9 @@ async function getDetail(uri){
   return results;
 };
 
-async function getLocations(fuzzyRes){
-  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${fuzzyRes}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
-  if(!results) return [];
+async function getLocations(fuzzyRes) {
+  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
+  if (!results) return [];
   return results['LocationResult'];
 };
 
