@@ -117,7 +117,7 @@ async function getUrl(stringUrl, headers = {}) {
 function processGeolocationResponse(response) {
   const results = tryJsonParse(response);
   if (!results) return [];
-  // Add counrty to addresses. The API only returns addresses in Belgium.
+  // Add country to addresses. The API only returns addresses in Belgium.
   let addresses = results['LocationResult'].map(address => {
     address['Country'] = DEFAULT_COUNTRY;
     address['FormattedAddress'] = `${address['FormattedAddress']}, ${address['Country']}`;
