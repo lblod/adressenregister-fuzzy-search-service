@@ -58,10 +58,8 @@ app.get('/suggest-from-latlon', async (req, res) => {
 });
 
 async function getDetail(uri) {
-  const results = tryJsonParse(await getUrl(`${uri}`));
-  if (!results) return null;
-  return results;
-};
+  return processBasisregisterResponse(await getUrl(`${uri}`));
+}
 
 async function getLocations(fuzzyRes) {
   return processGeolocationResponse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
@@ -88,11 +86,7 @@ async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarenam
 
   const url = `${BASISREGISTER_ADRESMATCH}?${queryParams}`;
 
-  const results = tryJsonParse(await getUrl(url));
-
-  if (!results) return [];
-
-  return results['adressen'];
+  return processBasisregisterResponse(await getUrl(url));
 }
 
 async function getAddressesFromLatLon(lat, lon, count) {
@@ -131,6 +125,31 @@ function processGeolocationResponse(response) {
   });
   return addresses;
 }
+
+function processBasisregisterResponse(response) {
+  const results = tryJsonParse(response);
+
+  if (!results) {
+    return [];
+  }
+
+  if (results['adressen'] && Array.isArray(results['adressen'])) {
+    return results['adressen'].map(address => addDefaultCountryToBasisregisterAddress(address));
+  } else {
+    return addDefaultCountryToBasisregisterAddress(results);
+  }
+}
+
+function addDefaultCountryToBasisregisterAddress(address) {
+  let fullAddress = address.volledigAdres.geografischeNaam;
+  if (fullAddress.taal === 'nl') {
+    fullAddress.spelling = `${fullAddress.spelling}, ${DEFAULT_COUNTRY}`;
+  }
+  address['land'] = DEFAULT_COUNTRY;
+  return address;
+}
+
+
 
 function tryJsonParse(str) {
   try {
