@@ -3,6 +3,7 @@ import request from 'request';
 
 const LOC_GEOPUNT_ENDPOINT = `https://geo.api.vlaanderen.be/geolocation/v4/Location`;
 const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
+const DEFAULT_COUNTRY = 'België';
 
 app.use(errorHandler);
 
@@ -57,15 +58,11 @@ app.get('/suggest-from-latlon', async (req, res) => {
 });
 
 async function getDetail(uri) {
-  const results = tryJsonParse(await getUrl(`${uri}`));
-  if (!results) return null;
-  return results;
-};
+  return processBasisregisterResponse(await getUrl(`${uri}`));
+}
 
 async function getLocations(fuzzyRes) {
-  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
-  if (!results) return [];
-  return results['LocationResult'];
+  return processGeolocationResponse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
 };
 
 // Note: BASISREGISTER_ADRESMATCH doesn't match if a param has accents in it.
@@ -89,17 +86,11 @@ async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarenam
 
   const url = `${BASISREGISTER_ADRESMATCH}?${queryParams}`;
 
-  const results = tryJsonParse(await getUrl(url));
-
-  if (!results) return [];
-
-  return results['adressen'];
+  return processBasisregisterResponse(await getUrl(url));
 }
 
 async function getAddressesFromLatLon(lat, lon, count) {
-  const results = tryJsonParse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?latlon=${lat},${lon}&c=${count}`));
-  if (!results) return [];
-  return results['LocationResult'];
+  return processGeolocationResponse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?latlon=${lat},${lon}&c=${count}`));
 };
 
 /**
@@ -122,6 +113,43 @@ async function getUrl(stringUrl, headers = {}) {
   });
 
 }
+
+function processGeolocationResponse(response) {
+  const results = tryJsonParse(response);
+  if (!results) return [];
+  // Add country to addresses. The API only returns addresses in Belgium.
+  let addresses = results['LocationResult'].map(address => {
+    address['Country'] = DEFAULT_COUNTRY;
+    address['FormattedAddress'] = `${address['FormattedAddress']}, ${address['Country']}`;
+    return address;
+  });
+  return addresses;
+}
+
+function processBasisregisterResponse(response) {
+  const results = tryJsonParse(response);
+
+  if (!results) {
+    return [];
+  }
+
+  if (results['adressen'] && Array.isArray(results['adressen'])) {
+    return results['adressen'].map(address => addDefaultCountryToBasisregisterAddress(address));
+  } else {
+    return addDefaultCountryToBasisregisterAddress(results);
+  }
+}
+
+function addDefaultCountryToBasisregisterAddress(address) {
+  let fullAddress = address.volledigAdres.geografischeNaam;
+  if (fullAddress.taal === 'nl') {
+    fullAddress.spelling = `${fullAddress.spelling}, ${DEFAULT_COUNTRY}`;
+  }
+  address['land'] = DEFAULT_COUNTRY;
+  return address;
+}
+
+
 
 function tryJsonParse(str) {
   try {
