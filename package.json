@@ -1,6 +1,6 @@
 {
   "name": "adressenregister-fuzzy-search-service",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "A microservice which eases fuzzy search on addressenregister.",
   "dependencies": {
     "request": "^2.88.0",
