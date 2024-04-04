@@ -2,7 +2,7 @@
 
 A microservice which eases fuzzy search on adressenregister.
 
-It does so by matching the fuzzy search results of [http://loc.geopunt.be/v4/suggestion](http://loc.geopunt.be/v4/suggestion) to objects in [https://basisregisters.vlaanderen.be/api/v1/adressen](https://basisregisters.vlaanderen.be/api/v1/adressen)
+It does so by matching the fuzzy search results of [http://loc.geopunt.be/v4/suggestion](http://loc.geopunt.be/v4/suggestion) to objects in [https://basisregisters.vlaanderen.be/api/v2/adressen](https://basisregisters.vlaanderen.be/api/v2/adressen)
 
 ## API
 ```
@@ -21,7 +21,7 @@ Should return:
                 "objectId": "3706808",
                 "versieId": 14
             },
-            "detail": "https://basisregisters.vlaanderen.be/api/v1/adressen/3706808",
+            "detail": "https://basisregisters.vlaanderen.be/api/v2/adressen/3706808",
             "huisnummer": "70",
             "busnummer": "",
             "volledigAdres": {
