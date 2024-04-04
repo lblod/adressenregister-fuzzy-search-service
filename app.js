@@ -2,7 +2,7 @@ import { app, errorHandler } from 'mu';
 import request from 'request';
 
 const LOC_GEOPUNT_ENDPOINT = `https://geo.api.vlaanderen.be/geolocation/v4/Location`;
-const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v1/adressen`;
+const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v2/adressen`;
 const DEFAULT_COUNTRY = 'België';
 
 app.use(errorHandler);
