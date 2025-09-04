@@ -1,72 +1,107 @@
 import { app, errorHandler } from 'mu';
-import request from 'request';
 
-const LOC_GEOPUNT_ENDPOINT = `https://geo.api.vlaanderen.be/geolocation/v4/Location`;
-const BASISREGISTER_ADRESMATCH = `https://basisregisters.vlaanderen.be/api/v2/adressen`;
+const LOC_GEOPUNT_ENDPOINT = 'https://geo.api.vlaanderen.be/geolocation/v4/Location';
+const BASISREGISTER_ADRESMATCH = 'https://basisregisters.vlaanderen.be/api/v2/adressen';
 const DEFAULT_COUNTRY = 'België';
 
-app.use(errorHandler);
+app.get('/', (req, res) => res.send({ 'msg': 'Welcome to adressenregister-fuzzy-search-service.' }));
 
-app.get('/', (req, res) => res.send({ 'msg': `Welcome to adressenregister-fuzzy-search-service.` }));
-
-app.get('/search', async (req, res) => {
+app.get('/search', async (req, res, next) => {
   const query = req.query.query;
 
   if (!query) {
-    res.status(400).send({ 'msg': `Please, include ?query=your address` });
-    return;
+    return res.status(400).send({ 'msg': 'Please, include ?query=your address' });
   }
 
-  const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
-
-  //mimick api of basisregister
-  res.send({ 'adressen': locations, 'totaalAantal': locations.length });
+  try {
+    const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
+    res.send({ 'adressen': locations, 'totaalAantal': locations.length });
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.get('/match', async (req, res) => {
-  const municipality = req.query.municipality;
-  const zipcode = req.query.zipcode;
-  const thoroughfarename = req.query.thoroughfarename;
-  const housenumber = req.query.housenumber;
+app.get('/match', async (req, res, next) => {
+  const { municipality, zipcode, thoroughfarename, housenumber } = req.query;
 
-  const addresses = (await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber));
-  res.send(addresses);
+  try {
+    const addresses = await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber);
+    res.send(addresses);
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.get('/detail', async (req, res) => {
-  const uri = req.query.uri;
+app.get('/detail', async (req, res, next) => {
+  const { uri } = req.query;
+
   if (!uri) {
-    res.status(400).send({ 'msg': `Please, include ?uri=http://foo` });
-    return;
+    return res.status(400).send({ 'msg': 'Please, include ?uri=http://foo' });
   }
 
-  let result = await getDetail(uri);
-  if (!result) {
-    res.status(404).send({ 'msg': `Details not found for ${uri}` });
-    return;
+  try {
+    const result = await getDetail(uri);
+    if (!result) {
+      return res.status(404).send({ 'msg': `Details not found for ${uri}` });
+    }
+    res.send(result);
+  } catch (error) {
+    next(error);
   }
-  res.send(result);
 });
 
-app.get('/suggest-from-latlon', async (req, res) => {
-  const lat = req.query.lat;
-  const lon = req.query.lon;
-  const count = req.query.count;
+app.get('/suggest-from-latlon', async (req, res, next) => {
+  const { lat, lon, count } = req.query;
 
-  const addresses = (await getAddressesFromLatLon(lat, lon, count));
-  res.send(addresses);
+  try {
+    const addresses = await getAddressesFromLatLon(lat, lon, count);
+    res.send(addresses);
+  } catch (error) {
+    next(error);
+  }
 });
 
+app.use(errorHandler);
+
+/**
+ * Get address details from a specific URI
+ * @param {string} uri - The URI to fetch details from
+ * @returns {Promise<Object>} The processed address details
+ */
 async function getDetail(uri) {
-  return processBasisregisterResponse(await getUrl(`${uri}`));
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  return processBasisregisterResponse(data);
 }
 
+/**
+ * Get address locations using fuzzy search
+ * @param {string} fuzzyRes - The fuzzy search query string
+ * @returns {Promise<Array>} Array of processed location results
+ */
 async function getLocations(fuzzyRes) {
-  return processGeolocationResponse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`)); // We force the results to have at least a housenumber
-};
+  const url = `${LOC_GEOPUNT_ENDPOINT}?q=${encodeURIComponent(fuzzyRes)}&c=10&type=Housenumber`; // We force the results to have at least a housenumber
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  return processGeolocationResponse(data);
+}
 
-// Note: BASISREGISTER_ADRESMATCH doesn't match if a param has accents in it.
-// To be able to process all the addresses, we need to make the letters as simple as possible
+/**
+ * Get address matches from basisregister API
+ * Note: BASISREGISTER_ADRESMATCH doesn't match if a param has accents in it.
+ * To be able to process all the addresses, we need to make the letters as simple as possible
+ * @param {string} municipality - Municipality name
+ * @param {string} zipcode - Postal code
+ * @param {string} thoroughfarename - Street name
+ * @param {string} housenumber - House number
+ * @returns {Promise<Array>} Array of processed address matches
+ */
 async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber) {
   let queryParams = '';
 
@@ -86,39 +121,41 @@ async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarenam
 
   const url = `${BASISREGISTER_ADRESMATCH}?${queryParams}`;
 
-  return processBasisregisterResponse(await getUrl(url));
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  return processBasisregisterResponse(data);
 }
-
-async function getAddressesFromLatLon(lat, lon, count) {
-  return processGeolocationResponse(await getUrl(`${LOC_GEOPUNT_ENDPOINT}?latlon=${lat},${lon}&c=${count}`));
-};
 
 /**
- * Get call url
+ * Get addresses based on latitude and longitude coordinates
+ * @param {string|number} lat - Latitude coordinate
+ * @param {string|number} lon - Longitude coordinate
+ * @param {string|number} count - Maximum number of results to return
+ * @returns {Promise<Array>} Array of processed addresses
  */
-async function getUrl(stringUrl, headers = {}) {
-  const url = (new URL(stringUrl)).href;
-
-  return new Promise((resolve, reject) => {
-    let r = request({ url, headers });
-    request(url, (error, response, body) => {
-      if (error) {
-        console.log(`Error occured by fetching url: ${url} `);
-        console.log(`Status code: ${response.statusCode} `);
-        console.log(`Error: ${error} `);
-        reject(error);
-      }
-      resolve(body);
-    });
-  });
-
+async function getAddressesFromLatLon(lat, lon, count) {
+  const url = `${LOC_GEOPUNT_ENDPOINT}?latlon=${lat},${lon}&c=${count}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  return processGeolocationResponse(data);
 }
 
-function processGeolocationResponse(response) {
-  const results = tryJsonParse(response);
-  if (!results) return [];
+
+/**
+ * Process geolocation API response and add country information
+ * @param {Object} data - The parsed JSON response object
+ * @returns {Array} Array of processed addresses with country information
+ */
+function processGeolocationResponse(data) {
+  if (!data || !data.LocationResult) return [];
   // Add country to addresses. The API only returns addresses in Belgium.
-  let addresses = results['LocationResult'].map(address => {
+  const addresses = data.LocationResult.map(address => {
     address['Country'] = DEFAULT_COUNTRY;
     address['FormattedAddress'] = `${address['FormattedAddress']}, ${address['Country']}`;
     return address;
@@ -126,22 +163,30 @@ function processGeolocationResponse(response) {
   return addresses;
 }
 
-function processBasisregisterResponse(response) {
-  const results = tryJsonParse(response);
-
-  if (!results) {
+/**
+ * Process basisregister API response and add country information
+ * @param {Object} data - The parsed JSON response object
+ * @returns {Array|Object} Processed address(es) with country information
+ */
+function processBasisregisterResponse(data) {
+  if (!data) {
     return [];
   }
 
-  if (results['adressen'] && Array.isArray(results['adressen'])) {
-    return results['adressen'].map(address => addDefaultCountryToBasisregisterAddress(address));
+  if (data.adressen && Array.isArray(data.adressen)) {
+    return data.adressen.map(address => addDefaultCountryToBasisregisterAddress(address));
   } else {
-    return addDefaultCountryToBasisregisterAddress(results);
+    return addDefaultCountryToBasisregisterAddress(data);
   }
 }
 
+/**
+ * Add default country information to a basisregister address
+ * @param {Object} address - The address object to modify
+ * @returns {Object} The modified address with country information
+ */
 function addDefaultCountryToBasisregisterAddress(address) {
-  let fullAddress = address.volledigAdres.geografischeNaam;
+  const fullAddress = address.volledigAdres.geografischeNaam;
   if (fullAddress.taal === 'nl') {
     fullAddress.spelling = `${fullAddress.spelling}, ${DEFAULT_COUNTRY}`;
   }
@@ -149,18 +194,12 @@ function addDefaultCountryToBasisregisterAddress(address) {
   return address;
 }
 
-
-
-function tryJsonParse(str) {
-  try {
-    return JSON.parse(str);
-  }
-  catch (e) {
-    return null;
-  }
-}
-
-// From https://ricardometring.com/javascript-replace-special-characters
+/**
+ * Remove accents from string to normalize text for API calls
+ * From https://ricardometring.com/javascript-replace-special-characters
+ * @param {string} string - The string to normalize
+ * @returns {string} String with accents removed
+ */
 function replaceAccents(string) {
   return string.normalize('NFD').replace(/([\u0300-\u036f])/g, '');
 }
