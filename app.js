@@ -100,8 +100,7 @@ async function getUrl(stringUrl, headers = {}) {
   const url = (new URL(stringUrl)).href;
 
   return new Promise((resolve, reject) => {
-    let r = request({ url, headers });
-    request(url, (error, response, body) => {
+    request({ url, headers }, (error, response, body) => {
       if (error) {
         console.log(`Error occured by fetching url: ${url} `);
         console.log(`Status code: ${response.statusCode} `);
