@@ -9,52 +9,71 @@ app.use(errorHandler);
 
 app.get('/', (req, res) => res.send({ 'msg': `Welcome to adressenregister-fuzzy-search-service.` }));
 
-app.get('/search', async (req, res) => {
-  const query = req.query.query;
+app.get('/search', async (req, res, next) => {
+  try {
+    const query = req.query.query;
 
-  if (!query) {
-    res.status(400).send({ 'msg': `Please, include ?query=your address` });
-    return;
+    if (!query) {
+      res.status(400).send({ 'msg': `Please, include ?query=your address` });
+      return;
+    }
+
+    const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
+
+    //mimick api of basisregister
+    res.send({ 'adressen': locations, 'totaalAantal': locations.length });
+  } catch (e) {
+    next(e);
   }
-
-  const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
-
-  //mimick api of basisregister
-  res.send({ 'adressen': locations, 'totaalAantal': locations.length });
 });
 
-app.get('/match', async (req, res) => {
-  const municipality = req.query.municipality;
-  const zipcode = req.query.zipcode;
-  const thoroughfarename = req.query.thoroughfarename;
-  const housenumber = req.query.housenumber;
+app.get('/match', async (req, res, next) => {
+  try {
+    const municipality = req.query.municipality;
+    const zipcode = req.query.zipcode;
+    const thoroughfarename = req.query.thoroughfarename;
+    const housenumber = req.query.housenumber;
 
-  const addresses = (await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber));
-  res.send(addresses);
+    const addresses = (await getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber));
+    res.send(addresses);
+  } catch (e) {
+    console.error(e);
+    next(e);
+  }
 });
 
-app.get('/detail', async (req, res) => {
-  const uri = req.query.uri;
-  if (!uri) {
-    res.status(400).send({ 'msg': `Please, include ?uri=http://foo` });
-    return;
-  }
+app.get('/detail', async (req, res, next) => {
+  try {
+    const uri = req.query.uri;
+    if (!uri) {
+      res.status(400).send({ 'msg': `Please, include ?uri=http://foo` });
+      return;
+    }
 
-  let result = await getDetail(uri);
-  if (!result) {
-    res.status(404).send({ 'msg': `Details not found for ${uri}` });
-    return;
+    let result = await getDetail(uri);
+    if (!result) {
+      res.status(404).send({ 'msg': `Details not found for ${uri}` });
+      return;
+    }
+    res.send(result);
+  } catch (e) {
+    console.error(e);
+    next(e);
   }
-  res.send(result);
 });
 
-app.get('/suggest-from-latlon', async (req, res) => {
-  const lat = req.query.lat;
-  const lon = req.query.lon;
-  const count = req.query.count;
+app.get('/suggest-from-latlon', async (req, res, next) => {
+  try {
+    const lat = req.query.lat;
+    const lon = req.query.lon;
+    const count = req.query.count;
 
-  const addresses = (await getAddressesFromLatLon(lat, lon, count));
-  res.send(addresses);
+    const addresses = (await getAddressesFromLatLon(lat, lon, count));
+    res.send(addresses);
+  } catch (e) {
+    console.error(e);
+    next(e);
+  }
 });
 
 async function getDetail(uri) {
