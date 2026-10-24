@@ -4,18 +4,18 @@ const LOC_GEOPUNT_ENDPOINT = 'https://geo.api.vlaanderen.be/geolocation/v4/Locat
 const BASISREGISTER_ADRESMATCH = 'https://basisregisters.vlaanderen.be/api/v2/adressen';
 const DEFAULT_COUNTRY = 'België';
 
-app.get('/', (req, res) => res.send({ 'msg': 'Welcome to adressenregister-fuzzy-search-service.' }));
+app.get('/', (req, res) => res.send({ msg: 'Welcome to adressenregister-fuzzy-search-service.' }));
 
 app.get('/search', async (req, res, next) => {
   const query = req.query.query;
 
   if (!query) {
-    return res.status(400).send({ 'msg': 'Please, include ?query=your address' });
+    return res.status(400).send({ msg: 'Please, include ?query=your address' });
   }
 
   try {
     const locations = await getLocations(query.replace(/^"(.*)"$/, '$1'));
-    res.send({ 'adressen': locations, 'totaalAantal': locations.length });
+    res.send({ adressen: locations, totaalAantal: locations.length });
   } catch (error) {
     console.error(error);
     next(error);
@@ -38,13 +38,13 @@ app.get('/detail', async (req, res, next) => {
   const { uri } = req.query;
 
   if (!uri) {
-    return res.status(400).send({ 'msg': 'Please, include ?uri=http://foo' });
+    return res.status(400).send({ msg: 'Please, include ?uri=http://foo' });
   }
 
   try {
     const result = await getDetail(uri);
     if (!result) {
-      return res.status(404).send({ 'msg': `Details not found for ${uri}` });
+      return res.status(404).send({ msg: `Details not found for ${uri}` });
     }
     res.send(result);
   } catch (error) {
@@ -109,17 +109,13 @@ async function getLocations(fuzzyRes) {
 async function getBasisregisterAdresMatch(municipality, zipcode, thoroughfarename, housenumber) {
   let queryParams = '';
 
-  if (municipality)
-    queryParams += `GemeenteNaam=${replaceAccents(municipality)}&`;
+  if (municipality) queryParams += `GemeenteNaam=${replaceAccents(municipality)}&`;
 
-  if (zipcode)
-    queryParams += `Postcode=${replaceAccents(zipcode)}&`;
+  if (zipcode) queryParams += `Postcode=${replaceAccents(zipcode)}&`;
 
-  if (thoroughfarename)
-    queryParams += `Straatnaam=${replaceAccents(thoroughfarename)}&`;
+  if (thoroughfarename) queryParams += `Straatnaam=${replaceAccents(thoroughfarename)}&`;
 
-  if (housenumber)
-    queryParams += `Huisnummer=${replaceAccents(housenumber)}&`;
+  if (housenumber) queryParams += `Huisnummer=${replaceAccents(housenumber)}&`;
 
   if (!queryParams) return [];
 
@@ -150,7 +146,6 @@ async function getAddressesFromLatLon(lat, lon, count) {
   return processGeolocationResponse(data);
 }
 
-
 /**
  * Process geolocation API response and add country information
  * @param {Object} data - The parsed JSON response object
@@ -159,7 +154,7 @@ async function getAddressesFromLatLon(lat, lon, count) {
 function processGeolocationResponse(data) {
   if (!data || !data.LocationResult) return [];
   // Add country to addresses. The API only returns addresses in Belgium.
-  const addresses = data.LocationResult.map(address => {
+  const addresses = data.LocationResult.map((address) => {
     address['Country'] = DEFAULT_COUNTRY;
     address['FormattedAddress'] = `${address['FormattedAddress']}, ${address['Country']}`;
     return address;
@@ -178,7 +173,7 @@ function processBasisregisterResponse(data) {
   }
 
   if (data.adressen && Array.isArray(data.adressen)) {
-    return data.adressen.map(address => addDefaultCountryToBasisregisterAddress(address));
+    return data.adressen.map((address) => addDefaultCountryToBasisregisterAddress(address));
   } else {
     return addDefaultCountryToBasisregisterAddress(data);
   }
